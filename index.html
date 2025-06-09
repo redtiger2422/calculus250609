@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Math Quiz Adventure</title>
+  <style>
+    /* Basic reset and background */
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(to bottom, #a0e0ff, #ffffff);
+      color: #333;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    /* Container styling */
+    #ageSelection, #quizContainer, #resultContainer {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #f0f8ff; /* AliceBlue for soft look */
+      border: 2px solid #88aaff;
+      border-radius: 10px;
+      padding: 20px;
+    }
+    /* Age selection styles */
+    #ageSelection select, #ageSelection button {
+      font-size: 1.2em;
+      padding: 10px;
+      margin: 10px 0;
+      border: 2px solid #88aaff;
+      border-radius: 5px;
+    }
+    /* Quiz header (characters and question number) */
+    #quizHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .character {
+      font-size: 3em;
+    }
+    #questionNumber {
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    /* Question text and input */
+    #questionText {
+      font-size: 1.5em;
+      margin: 20px 0;
+    }
+    #answerInput {
+      width: 100%;
+      font-size: 1.2em;
+      padding: 10px;
+      margin: 10px 0;
+      border: 2px solid #88aaff;
+      border-radius: 5px;
+      text-align: center;
+    }
+    #submitAnswer {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      background-color: #88aaff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #submitAnswer:hover {
+      background-color: #66aaff;
+    }
+    /* Feedback message styling */
+    #feedback {
+      margin-top: 15px;
+      font-size: 1.2em;
+      font-style: italic;
+      min-height: 1.2em;
+    }
+    /* Result section */
+    #resultContainer h2 {
+      margin-top: 0;
+    }
+    #resultMessage {
+      font-size: 1.2em;
+      margin: 15px 0;
+    }
+    #retakeButton {
+      font-size: 1.2em;
+      padding: 10px 20px;
+      background-color: #88aaff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #retakeButton:hover {
+      background-color: #66aaff;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get references to elements
+      const ageSelection = document.getElementById('ageSelection');
+      const ageSelect = document.getElementById('ageSelect');
+      const startButton = document.getElementById('startQuiz');
+      const quizContainer = document.getElementById('quizContainer');
+      const questionNumber = document.getElementById('questionNumber');
+      const questionText = document.getElementById('questionText');
+      const answerInput = document.getElementById('answerInput');
+      const submitButton = document.getElementById('submitAnswer');
+      const feedback = document.getElementById('feedback');
+      const resultContainer = document.getElementById('resultContainer');
+      const resultScore = document.getElementById('resultScore');
+      const resultPercentage = document.getElementById('resultPercentage');
+      const resultMessage = document.getElementById('resultMessage');
+      const retakeButton = document.getElementById('retakeButton');
+
+      let questions = [];       // Holds generated questions
+      let currentQuestion = 0;  // Index of current question
+      let correctCount = 0;     // Counter for correct answers
+      let answered = false;     // Flag if current question answered
+
+      // Encouragement phrases for feedback
+      const encouragements = {
+        correct: [
+          '🦖 Great job!',
+          '👸 Excellent!',
+          '🦖 Fantastic!',
+          '👸 Well done!',
+          '🦖 Keep it up!',
+          '👸 You got it!'
+        ],
+        incorrect: [
+          '🦖 Oops, don\'t worry, try the next one!',
+          '👸 Nice try, keep practicing!',
+          '🦖 Almost there, you can do it!',
+          '👸 Don\'t give up!',
+          '🦖 Let\'s go to the next question!'
+        ]
+      };
+
+      // Utility: get random integer between min and max (inclusive)
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      // Shuffle array in place (Fisher-Yates)
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      // Generate 30 arithmetic questions based on selected age
+      function generateQuestions(age) {
+        const qs = [];
+        for (let i = 0; i < 30; i++) {
+          let question = '';
+          let answer = 0;
+          if (age <= 6) {
+            // Age 5-6: addition or subtraction with numbers 1-10
+            const op = Math.random() < 0.5 ? '+' : '-';
+            if (op === '+') {
+              const a = randInt(1, 10);
+              const b = randInt(1, 10);
+              question = a + ' + ' + b;
+              answer = a + b;
+            } else {
+              const a = randInt(1, 10);
+              const b = randInt(1, 10);
+              const x = Math.max(a, b);
+              const y = Math.min(a, b);
+              question = x + ' - ' + y;
+              answer = x - y;
+            }
+          } else if (age <= 8) {
+            // Age 7-8: addition/subtraction up to 20, multiplication up to 5x5
+            const rand = Math.random();
+            if (rand < 0.4) {
+              // Addition (sum <= 20)
+              const a = randInt(0, 20);
+              const b = randInt(0, 20 - a);
+              question = a + ' + ' + b;
+              answer = a + b;
+            } else if (rand < 0.8) {
+              // Subtraction (result >= 0)
+              const a = randInt(0, 20);
+              const b = randInt(0, a);
+              question = a + ' - ' + b;
+              answer = a - b;
+            } else {
+              // Multiplication 1-5
+              const a = randInt(1, 5);
+              const b = randInt(1, 5);
+              question = a + ' × ' + b;
+              answer = a * b;
+            }
+          } else if (age <= 10) {
+            // Age 9-10: all four ops, numbers up to 10
+            const rand = Math.random();
+            if (rand < 0.25) {
+              // Addition
+              const a = randInt(0, 10);
+              const b = randInt(0, 10);
+              question = a + ' + ' + b;
+              answer = a + b;
+            } else if (rand < 0.5) {
+              // Subtraction
+              const a = randInt(0, 10);
+              const b = randInt(0, 10);
+              const x = Math.max(a, b);
+              const y = Math.min(a, b);
+              question = x + ' - ' + y;
+              answer = x - y;
+            } else if (rand < 0.75) {
+              // Multiplication
+              const a = randInt(1, 10);
+              const b = randInt(1, 10);
+              question = a + ' × ' + b;
+              answer = a * b;
+            } else {
+              // Division (make sure it's an integer result)
+              const a = randInt(1, 10);
+              const b = randInt(1, 10);
+              const product = a * b;
+              question = product + ' ÷ ' + a;
+              answer = product / a;
+            }
+          } else {
+            // Age 11-13: operations up to 100, include two-step problems
+            const twoStep = Math.random() < 0.3;  // 30% chance of two-step problem
+            if (!twoStep) {
+              // Single-step (various ops)
+              const rand = Math.random();
+              if (rand < 0.25) {
+                // Addition
+                const a = randInt(0, 50);
+                const b = randInt(0, 50);
+                question = a + ' + ' + b;
+                answer = a + b;
+              } else if (rand < 0.5) {
+                // Subtraction
+                const a = randInt(0, 50);
+                const b = randInt(0, a);
+                question = a + ' - ' + b;
+                answer = a - b;
+              } else if (rand < 0.75) {
+                // Multiplication
+                const a = randInt(1, 20);
+                const b = randInt(1, 20);
+                question = a + ' × ' + b;
+                answer = a * b;
+              } else {
+                // Division
+                const a = randInt(1, 20);
+                const b = randInt(1, 20);
+                const product = a * b;
+                question = product + ' ÷ ' + a;
+                answer = product / a;
+              }
+            } else {
+              // Two-step problem
+              const pattern = randInt(1, 6);
+              switch(pattern) {
+                case 1:
+                  // (a + b) × c
+                  var a = randInt(1, 20);
+                  var b = randInt(1, 20);
+                  var c = randInt(1, 10);
+                  question = '(' + a + ' + ' + b + ') × ' + c;
+                  answer = (a + b) * c;
+                  break;
+                case 2:
+                  // a × (b + c)
+                  var a = randInt(1, 10);
+                  var b = randInt(1, 20);
+                  var c = randInt(1, 20);
+                  question = a + ' × (' + b + ' + ' + c + ')';
+                  answer = a * (b + c);
+                  break;
+                case 3:
+                  // (a - b) + c
+                  var a = randInt(1, 50);
+                  var b = randInt(1, a);
+                  var c = randInt(1, 50);
+                  question = '(' + a + ' - ' + b + ') + ' + c;
+                  answer = (a - b) + c;
+                  break;
+                case 4:
+                  // (a + b) - c
+                  var a = randInt(1, 50);
+                  var b = randInt(1, 50);
+                  var c = randInt(1, a + b);
+                  question = '(' + a + ' + ' + b + ') - ' + c;
+                  answer = (a + b) - c;
+                  break;
+                case 5:
+                  // a + b × c (no parentheses, multiply first)
+                  var a = randInt(1, 20);
+                  var b = randInt(1, 10);
+                  var c = randInt(1, 10);
+                  question = a + ' + ' + b + ' × ' + c;
+                  answer = a + (b * c);
+                  break;
+                case 6:
+                  // a × b - c
+                  var a = randInt(1, 20);
+                  var b = randInt(1, 10);
+                  var c = randInt(1, a * b);
+                  question = a + ' × ' + b + ' - ' + c;
+                  answer = (a * b) - c;
+                  break;
+              }
+            }
+          }
+          // Add to question list
+          qs.push({ question: question, answer: answer });
+        }
+        return qs;
+      }
+
+      // Display current question on screen
+      function showQuestion() {
+        const q = questions[currentQuestion];
+        questionNumber.textContent = 'Question ' + (currentQuestion + 1) + ' of ' + questions.length;
+        questionText.textContent = q.question + ' = ?';
+        answerInput.value = '';
+        feedback.textContent = '';
+        answerInput.focus();
+      }
+
+      // Handle answer submission / next question
+      submitButton.addEventListener('click', function() {
+        if (!answered) {
+          // First click: check the answer
+          const userAns = parseInt(answerInput.value);
+          const correctAns = questions[currentQuestion].answer;
+          if (!isNaN(userAns) && userAns === correctAns) {
+            correctCount++;
+            feedback.textContent = encouragements.correct[Math.floor(Math.random() * encouragements.correct.length)];
+          } else {
+            // Show encouragement and correct answer
+            feedback.textContent = encouragements.incorrect[Math.floor(Math.random() * encouragements.incorrect.length)]
+                                    + ' The correct answer was ' + correctAns + '.';
+          }
+          answered = true;
+          submitButton.textContent = 'Next';
+        } else {
+          // Second click: move to next question or finish
+          answered = false;
+          currentQuestion++;
+          if (currentQuestion < questions.length) {
+            submitButton.textContent = 'Submit';
+            showQuestion();
+          } else {
+            // Quiz finished: show results
+            quizContainer.style.display = 'none';
+            resultContainer.style.display = 'block';
+            const percentage = Math.round((correctCount / questions.length) * 100);
+            resultScore.textContent = correctCount + ' out of ' + questions.length;
+            resultPercentage.textContent = percentage + '%';
+            // Custom message based on score
+            let msg = '';
+            if (percentage >= 90) {
+              msg = '🦖 Fantastic work! You are a math star! 🎉';
+            } else if (percentage >= 80) {
+              msg = '👸 Great job! Keep going to reach 90%! 🌟';
+            } else {
+              msg = '🦖 Keep practicing! You can do even better next time!';
+            }
+            resultMessage.textContent = msg;
+          }
+        }
+      });
+
+      // Allow pressing Enter key to submit answer
+      answerInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          submitButton.click();
+        }
+      });
+
+      // Start quiz when age is selected
+      startButton.addEventListener('click', function() {
+        const age = parseInt(ageSelect.value);
+        if (age >= 5 && age <= 13) {
+          questions = generateQuestions(age);
+          shuffle(questions);
+          currentQuestion = 0;
+          correctCount = 0;
+          ageSelection.style.display = 'none';
+          quizContainer.style.display = 'block';
+          showQuestion();
+        } else {
+          alert('Please select a valid age (5-13).');
+        }
+      });
+
+      // Retake quiz button
+      retakeButton.addEventListener('click', function() {
+        location.reload();
+      });
+    });
+  </script>
+</head>
+<body>
+  <!-- Age selection screen -->
+  <div id="ageSelection">
+    <h1>🦖 Arithmetic Adventure! 👸</h1>
+    <p>Select your age (5 to 13) and start the quiz:</p>
+    <select id="ageSelect">
+      <option value="">-- Choose Age --</option>
+      <option value="5">5 years</option>
+      <option value="6">6 years</option>
+      <option value="7">7 years</option>
+      <option value="8">8 years</option>
+      <option value="9">9 years</option>
+      <option value="10">10 years</option>
+      <option value="11">11 years</option>
+      <option value="12">12 years</option>
+      <option value="13">13 years</option>
+    </select>
+    <button id="startQuiz">Start Quiz</button>
+  </div>
+
+  <!-- Quiz container (hidden initially) -->
+  <div id="quizContainer" style="display:none;">
+    <div id="quizHeader">
+      <div class="character">🦕</div>
+      <div id="questionNumber">Question 1 of 30</div>
+      <div class="character">👸</div>
+    </div>
+    <p id="questionText">Question text will appear here</p>
+    <input id="answerInput" type="text" placeholder="Enter your answer here">
+    <button id="submitAnswer">Submit</button>
+    <div id="feedback"></div>
+  </div>
+
+  <!-- Results screen (hidden initially) -->
+  <div id="resultContainer" style="display:none;">
+    <h2>Quiz Completed!</h2>
+    <p>You got <span id="resultScore">0 out of 30</span>.</p>
+    <p>Accuracy: <span id="resultPercentage">0%</span>.</p>
+    <p id="resultMessage"></p>
+    <button id="retakeButton">Retake Quiz</button>
+  </div>
+</body>
+</html>
